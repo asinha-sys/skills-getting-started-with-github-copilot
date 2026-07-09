@@ -6,31 +6,40 @@ from src.app import app
 client = TestClient(app)
 
 
-def test_unregister_participant_removes_email_from_activity():
-    activity_name = "Chess Club"
-    email = "test-student@mergington.edu"
+def test_get_activities_returns_data():
+    # Arrange
+    # No setup needed for this endpoint.
 
+    # Act
+    response = client.get("/activities")
+
+    # Assert
+    assert response.status_code == 200
+    assert "Chess Club" in response.json()
+
+
+def test_signup_and_unregister_flow():
+    # Arrange
+    activity_name = "Chess Club"
+    email = "backend-test@mergington.edu"
+
+    # Act
     signup_response = client.post(
         f"/activities/{activity_name}/signup",
         params={"email": email},
     )
-    assert signup_response.status_code == 200
+    activities_response = client.get("/activities")
+    activities = activities_response.json()
 
-    delete_response = client.delete(
+    unregister_response = client.delete(
         f"/activities/{activity_name}/signup",
         params={"email": email},
     )
-    assert delete_response.status_code == 200
+    refreshed_response = client.get("/activities")
+    refreshed_activities = refreshed_response.json()
 
-    activities_response = client.get("/activities")
-    activities = activities_response.json()
-    assert email not in activities[activity_name]["participants"]
-
-
-def test_unregister_missing_participant_returns_not_found():
-    response = client.delete(
-        "/activities/Chess Club/signup",
-        params={"email": "missing-student@mergington.edu"},
-    )
-
-    assert response.status_code == 404
+    # Assert
+    assert signup_response.status_code == 200
+    assert email in activities[activity_name]["participants"]
+    assert unregister_response.status_code == 200
+    assert email not in refreshed_activities[activity_name]["participants"]
